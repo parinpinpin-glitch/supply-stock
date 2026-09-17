@@ -16,7 +16,8 @@ Phase 6 — History + Final review
 
 ## Current Phase Check
 ทุก phase approved แล้ว — เวอร์ชันแรก done
-ขั้นต่อไป: ขึ้น production (GitHub + Supabase + Vercel) — ดูแผนด้านล่างที่คุยกับผู้ใช้
+Production: https://supply-stock-one.vercel.app (ตรวจแล้ว login + 7 หน้า + role guard ผ่าน, ข้อมูลจาก Supabase)
+แก้ปัญหา deploy: env ต้อง Redeploy หลังแก้ไขทุกครั้ง (ป้าย Needs Attention)
 
 Phase 6 checklist:
 - [ ] ประวัติขึ้นครบตามที่ทำจริง (เบิก/สั่งซื้อ/รับเข้า) พร้อมคนทำ วันเวลา จำนวน
