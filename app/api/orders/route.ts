@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, decodeSession } from "@/lib/auth";
-import { readSupplies, createOrder, listOrders, addMovement, todayISO } from "@/lib/store";
+import { readSupplies, createOrder, listOrders, addMovement, todayISO, findSupply } from "@/lib/store";
 
 // GET /api/orders?status=pending|received|overdue — ดูได้เฉพาะ purchaser / admin
 export async function GET(req: Request) {
@@ -13,8 +13,8 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status") as "pending" | "received" | "overdue" | null;
   const supply_id = searchParams.get("supply_id") || undefined;
-  const orders = listOrders({ status: status || undefined, supply_id });
-  const supplies = readSupplies();
+  const orders = await listOrders({ status: status || undefined, supply_id });
+  const supplies = await readSupplies();
   const withNames = orders.map((o) => ({
     ...o,
     item_name: supplies.find((s) => s.id === o.supply_id)?.item_name ?? "(ถูกลบ)",
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
   const expected = String(body?.expected_arrival_date ?? "");
   const notes = String(body?.notes ?? "").trim().slice(0, 500);
 
-  const supply = readSupplies().find((s) => s.id === supply_id);
+  const supply = await findSupply(supply_id);
   if (!supply) return NextResponse.json({ error: "ไม่พบรายการ Supply" }, { status: 404 });
   if (!supply.is_active) return NextResponse.json({ error: "รายการนี้ปิดใช้งานแล้ว" }, { status: 400 });
   if (!Number.isFinite(ordered_qty) || ordered_qty <= 0)
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
   if (expected < todayISO())
     return NextResponse.json({ error: "วันที่คาดว่าของจะเข้าต้องไม่เป็นอดีต" }, { status: 400 });
 
-  const order = createOrder({
+  const order = await createOrder({
     supply_id,
     ordered_qty,
     ordered_by_user_id: user.id,
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     notes
   });
 
-  addMovement({
+  await addMovement({
     supply_id,
     movement_type: "order_marked",
     qty: ordered_qty,

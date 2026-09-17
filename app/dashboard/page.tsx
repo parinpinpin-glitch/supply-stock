@@ -9,17 +9,18 @@ export default async function DashboardPage() {
   if (!user) redirect("/login");
   const canOrder = user.role === "purchaser" || user.role === "admin";
 
-  const supplies = readSupplies();
+  const supplies = await readSupplies();
+  const byId = new Map(supplies.map((s) => [s.id, s]));
   const active = supplies.filter((s) => s.is_active);
   const lowStock = active.filter((s) => s.current_stock <= s.reorder_point);
-  const pending = listOrders({ status: "pending" });
+  const pending = await listOrders({ status: "pending" });
   const overdue = pending.filter((o) => isOverdue(o));
-  const recentReceived = listOrders({ status: "received" }).slice(0, 5);
+  const recentReceived = (await listOrders({ status: "received" })).slice(0, 5);
 
   // ตรวจ overdue ทุกครั้งที่เปิด dashboard — แจ้งเตือน order ละครั้ง (กันส่งซ้ำด้วย email log)
   for (const o of overdue) {
-    if (!overdueNotified(o.id)) {
-      const s = findSupply(o.supply_id);
+    if (!(await overdueNotified(o.id))) {
+      const s = await findSupply(o.supply_id);
       await notify(
         "overdue_arrival",
         `[SupplyStock] ของยังไม่เข้า: ${s?.item_name ?? "?"}`,
@@ -88,7 +89,7 @@ export default async function DashboardPage() {
       ) : (
         <div className="mt-2 space-y-1">
           {overdue.map((o) => {
-            const s = findSupply(o.supply_id);
+            const s = byId.get(o.supply_id);
             return (
               <div key={o.id} className="flex items-center justify-between rounded-xl bg-white px-4 py-2.5 text-sm shadow-sm">
                 <div>
@@ -113,7 +114,7 @@ export default async function DashboardPage() {
       ) : (
         <div className="mt-2 space-y-1">
           {recentReceived.map((o) => {
-            const s = findSupply(o.supply_id);
+            const s = byId.get(o.supply_id);
             return (
               <div key={o.id} className="flex items-center justify-between rounded-xl bg-white px-4 py-2.5 text-sm shadow-sm">
                 <div>

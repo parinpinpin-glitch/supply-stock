@@ -5,8 +5,8 @@ import SupplyForm from "@/components/SupplyForm";
 import { stockBadge, supplyThumb } from "@/components/stock";
 import { findSupply, movementsForSupply, MOVEMENT_LABEL, listOrders, isOverdue } from "@/lib/store";
 
-function MovementList({ supplyId }: { supplyId: string }) {
-  const list = movementsForSupply(supplyId, 10);
+async function MovementList({ supplyId }: { supplyId: string }) {
+  const list = await movementsForSupply(supplyId, 10);
   if (list.length === 0) {
     return (
       <div className="mt-2 rounded-xl bg-white p-4 text-center text-sm text-gray-400 shadow-sm">
@@ -40,8 +40,8 @@ function MovementList({ supplyId }: { supplyId: string }) {
   );
 }
 
-function PendingOrders({ supplyId }: { supplyId: string }) {
-  const list = listOrders({ status: "pending", supply_id: supplyId });
+async function PendingOrders({ supplyId }: { supplyId: string }) {
+  const list = (await listOrders({ status: "pending", supply_id: supplyId }));
   if (list.length === 0) return null;
   return (
     <div className="mt-4">
@@ -64,10 +64,10 @@ function PendingOrders({ supplyId }: { supplyId: string }) {
   );
 }
 
-export default function SupplyDetailPage({ params }: { params: { id: string } }) {
+export default async function SupplyDetailPage({ params }: { params: { id: string } }) {
   const user = getSession();
   if (!user) redirect("/login");
-  const supply = findSupply(params.id);
+  const supply = await findSupply(params.id);
   if (!supply) notFound();
 
   const canWrite = user.role === "purchaser" || user.role === "admin";

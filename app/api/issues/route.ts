@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, decodeSession } from "@/lib/auth";
-import { readSupplies, writeSupplies, addMovement } from "@/lib/store";
+import { findSupply, updateSupply, addMovement } from "@/lib/store";
 import { notify } from "@/lib/email";
 
 // POST /api/issues — เบิกของได้ทุก role ที่ login แล้ว
@@ -19,11 +19,8 @@ export async function POST(req: Request) {
   if (!Number.isFinite(qty) || qty <= 0)
     return NextResponse.json({ error: "จำนวนเบิกต้องมากกว่า 0" }, { status: 400 });
 
-  const all = readSupplies();
-  const idx = all.findIndex((s) => s.id === supply_id);
-  if (idx === -1) return NextResponse.json({ error: "ไม่พบรายการ" }, { status: 404 });
-
-  const supply = all[idx];
+  const supply = await findSupply(supply_id);
+  if (!supply) return NextResponse.json({ error: "ไม่พบรายการ" }, { status: 404 });
   if (!supply.is_active) return NextResponse.json({ error: "รายการนี้ปิดใช้งานแล้ว" }, { status: 400 });
   if (qty > supply.current_stock)
     return NextResponse.json(
@@ -32,10 +29,9 @@ export async function POST(req: Request) {
     );
 
   // ตัด stock ทันที
-  all[idx] = { ...supply, current_stock: supply.current_stock - qty, updated_at: new Date().toISOString() };
-  writeSupplies(all);
+  const updated = await updateSupply(supply_id, { current_stock: supply.current_stock - qty });
 
-  const movement = addMovement({
+  const movement = await addMovement({
     supply_id,
     movement_type: "issue",
     qty,
@@ -46,17 +42,17 @@ export async function POST(req: Request) {
     notes
   });
 
-  const lowStock = all[idx].current_stock <= all[idx].reorder_point;
+  const lowStock = updated!.current_stock <= updated!.reorder_point;
 
   // แจ้งเตือนครั้งเดียวตอน “ข้ามเส้น” ROP (ก่อนเบิกยังไม่ขาด หลังเบิกขาด) — กันสแปม
   if (supply.current_stock > supply.reorder_point && lowStock) {
     await notify(
       "low_stock",
-      `[SupplyStock] ${all[idx].item_name} ถึงจุดต้องสั่งซื้อ`,
-      `<p><b>${all[idx].item_name}</b> เหลือ <b>${all[idx].current_stock} ${all[idx].unit}</b> (ROP ${all[idx].reorder_point})</p><p>เบิกโดย ${user.name}</p>`,
+      `[SupplyStock] ${updated!.item_name} ถึงจุดต้องสั่งซื้อ`,
+      `<p><b>${updated!.item_name}</b> เหลือ <b>${updated!.current_stock} ${updated!.unit}</b> (ROP ${updated!.reorder_point})</p><p>เบิกโดย ${user.name}</p>`,
       { supply_id }
     );
   }
 
-  return NextResponse.json({ supply: all[idx], movement, lowStock }, { status: 201 });
+  return NextResponse.json({ supply: updated, movement, lowStock }, { status: 201 });
 }

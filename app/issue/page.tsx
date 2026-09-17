@@ -4,10 +4,10 @@ import { AppShell } from "@/components/AppShell";
 import IssueForm from "@/components/IssueForm";
 import { readSupplies } from "@/lib/store";
 
-export default function IssuePage() {
+export default async function IssuePage() {
   const user = getSession();
   if (!user) redirect("/login");
-  const supplies = readSupplies().filter((s) => s.is_active);
+  const supplies = (await readSupplies()).filter((s) => s.is_active);
 
   return (
     <AppShell user={user}>

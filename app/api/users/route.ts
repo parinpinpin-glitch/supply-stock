@@ -14,7 +14,7 @@ function requireAdmin() {
 export async function GET() {
   const { error } = requireAdmin();
   if (error) return error;
-  return NextResponse.json({ users: listUsers() });
+  return NextResponse.json({ users: await listUsers() });
 }
 
 // POST /api/users { name, email, password, role } — เพิ่ม (Admin)
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   const { error } = requireAdmin();
   if (error) return error;
   const body = await req.json().catch(() => null);
-  const result = createUser({
+  const result = await createUser({
     name: String(body?.name ?? ""),
     email: String(body?.email ?? ""),
     password: String(body?.password ?? ""),

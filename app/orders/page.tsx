@@ -3,15 +3,15 @@ import { getSession } from "@/lib/session";
 import { AppShell } from "@/components/AppShell";
 import { listOrders, isOverdue, readSupplies } from "@/lib/store";
 
-export default function OrdersPage() {
+export default async function OrdersPage() {
   const user = getSession();
   if (!user) redirect("/login");
   if (user.role !== "purchaser" && user.role !== "admin") redirect("/no-access");
 
-  const supplies = readSupplies();
+  const supplies = await readSupplies();
   const nameOf = (id: string) => supplies.find((s) => s.id === id);
-  const pending = listOrders({ status: "pending" });
-  const received = listOrders({ status: "received" }).slice(0, 10);
+  const pending = await listOrders({ status: "pending" });
+  const received = (await listOrders({ status: "received" })).slice(0, 10);
 
   return (
     <AppShell user={user}>

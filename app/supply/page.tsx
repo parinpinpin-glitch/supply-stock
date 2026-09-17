@@ -4,10 +4,10 @@ import { AppShell } from "@/components/AppShell";
 import SupplyList from "@/components/SupplyList";
 import { readSupplies } from "@/lib/store";
 
-export default function SupplyPage() {
+export default async function SupplyPage() {
   const user = getSession();
   if (!user) redirect("/login");
-  const supplies = readSupplies();
+  const supplies = await readSupplies();
 
   return (
     <AppShell user={user}>

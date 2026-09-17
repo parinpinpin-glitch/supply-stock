@@ -4,11 +4,11 @@ import { AppShell } from "@/components/AppShell";
 import OrderForm from "@/components/OrderForm";
 import { findSupply } from "@/lib/store";
 
-export default function SupplyOrderPage({ params }: { params: { id: string } }) {
+export default async function SupplyOrderPage({ params }: { params: { id: string } }) {
   const user = getSession();
   if (!user) redirect("/login");
   if (user.role !== "purchaser" && user.role !== "admin") redirect("/no-access");
-  const supply = findSupply(params.id);
+  const supply = await findSupply(params.id);
   if (!supply) notFound();
 
   return (

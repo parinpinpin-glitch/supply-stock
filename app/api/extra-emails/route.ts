@@ -15,7 +15,7 @@ function requireAdmin() {
 export async function GET() {
   const { error } = requireAdmin();
   if (error) return error;
-  return NextResponse.json({ emails: listExtraEmails() });
+  return NextResponse.json({ emails: await listExtraEmails() });
 }
 
 // POST /api/extra-emails { email } — เพิ่ม (Admin)
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   const { error } = requireAdmin();
   if (error) return error;
   const body = await req.json().catch(() => null);
-  const result = addExtraEmail(String(body?.email ?? ""));
+  const result = await addExtraEmail(String(body?.email ?? ""));
   if ("error" in result) return NextResponse.json({ error: result.error }, { status: 400 });
   return NextResponse.json({ email: result }, { status: 201 });
 }
@@ -33,7 +33,7 @@ export async function PUT(req: Request) {
   const { error } = requireAdmin();
   if (error) return error;
   const body = await req.json().catch(() => null);
-  const updated = setExtraEmailActive(String(body?.id ?? ""), body?.is_active !== false);
+  const updated = await setExtraEmailActive(String(body?.id ?? ""), body?.is_active !== false);
   if (!updated) return NextResponse.json({ error: "ไม่พบอีเมล" }, { status: 404 });
   return NextResponse.json({ email: updated });
 }
@@ -43,6 +43,6 @@ export async function DELETE(req: Request) {
   const { error } = requireAdmin();
   if (error) return error;
   const id = new URL(req.url).searchParams.get("id") ?? "";
-  if (!deleteExtraEmail(id)) return NextResponse.json({ error: "ไม่พบอีเมล" }, { status: 404 });
+  if (!(await deleteExtraEmail(id))) return NextResponse.json({ error: "ไม่พบอีเมล" }, { status: 404 });
   return NextResponse.json({ ok: true });
 }

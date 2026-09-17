@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "กรุณากรอกอีเมลและรหัสผ่าน" }, { status: 400 });
   }
 
-  const found = findUserByEmail(email);
+  const found = await findUserByEmail(email);
   if (!found || found.password !== password) {
     return NextResponse.json({ error: "อีเมลหรือรหัสผ่านไม่ถูกต้อง" }, { status: 401 });
   }

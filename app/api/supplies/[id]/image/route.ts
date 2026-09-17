@@ -17,7 +17,7 @@ function role() {
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const { error } = role();
   if (error) return error;
-  const supply = findSupply(params.id);
+  const supply = await findSupply(params.id);
   if (!supply) return NextResponse.json({ error: "ไม่พบรายการ" }, { status: 404 });
 
   const form = await req.formData().catch(() => null);
@@ -26,8 +26,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   });
   if (!saved.ok || !saved.url) return NextResponse.json({ error: saved.error }, { status: 400 });
 
-  deleteUpload(supply.image_url);
-  const updated = setSupplyImage(params.id, saved.url);
+  await deleteUpload(supply.image_url);
+  const updated = await setSupplyImage(params.id, saved.url);
   return NextResponse.json({ supply: updated });
 }
 
@@ -35,9 +35,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   const { error } = role();
   if (error) return error;
-  const supply = findSupply(params.id);
+  const supply = await findSupply(params.id);
   if (!supply) return NextResponse.json({ error: "ไม่พบรายการ" }, { status: 404 });
-  deleteUpload(supply.image_url);
-  const updated = setSupplyImage(params.id, null);
+  await deleteUpload(supply.image_url);
+  const updated = await setSupplyImage(params.id, null);
   return NextResponse.json({ supply: updated });
 }

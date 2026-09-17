@@ -4,14 +4,14 @@ import { AppShell } from "@/components/AppShell";
 import ReceiveForm from "@/components/ReceiveForm";
 import { findOrder, findSupply, isOverdue } from "@/lib/store";
 
-export default function ReceivePage({ params }: { params: { id: string } }) {
+export default async function ReceivePage({ params }: { params: { id: string } }) {
   const user = getSession();
   if (!user) redirect("/login");
   if (user.role !== "purchaser" && user.role !== "admin") redirect("/no-access");
-  const order = findOrder(params.id);
+  const order = await findOrder(params.id);
   if (!order) notFound();
   if (order.received_status === "received") redirect("/orders");
-  const supply = findSupply(order.supply_id);
+  const supply = await findSupply(order.supply_id);
 
   return (
     <AppShell user={user}>

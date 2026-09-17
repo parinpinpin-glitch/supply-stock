@@ -16,7 +16,7 @@ function qtyBadge(type: MovementType, qty: number) {
   return <span className="font-bold text-blue-700">{qty}</span>;
 }
 
-export default function HistoryPage({
+export default async function HistoryPage({
   searchParams
 }: {
   searchParams: { supply_id?: string; type?: string; q?: string };
@@ -24,14 +24,14 @@ export default function HistoryPage({
   const user = getSession();
   if (!user) redirect("/login");
 
-  const supplies = readSupplies();
+  const supplies = await readSupplies();
   const nameOf = (id: string) => supplies.find((s) => s.id === id)?.item_name ?? "(ถูกลบ)";
 
   const supplyId = searchParams.supply_id || "";
   const type = (searchParams.type || "") as string;
   const q = (searchParams.q || "").trim().toLowerCase();
 
-  let list = readMovements();
+  let list = await readMovements();
   if (supplyId) list = list.filter((m) => m.supply_id === supplyId);
   if (type) list = list.filter((m) => m.movement_type === type);
   if (q) {

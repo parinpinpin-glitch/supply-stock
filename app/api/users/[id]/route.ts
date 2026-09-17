@@ -16,7 +16,7 @@ function requireAdmin() {
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   const { error, user } = requireAdmin();
   if (error || !user) return error;
-  const target = getUser(params.id);
+  const target = await getUser(params.id);
   if (!target) return NextResponse.json({ error: "ไม่พบผู้ใช้" }, { status: 404 });
 
   const body = await req.json().catch(() => null);
@@ -27,12 +27,12 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ error: "ไม่สามารถเปลี่ยนสิทธิ์หรือปิดใช้งานบัญชีตัวเอง" }, { status: 400 });
   }
   if (target.role === "admin" && target.is_active && (newRole !== undefined && newRole !== "admin" || newActive === false)) {
-    if (activeAdminCount(target.id) === 0) {
+    if ((await activeAdminCount(target.id)) === 0) {
       return NextResponse.json({ error: "ต้องเหลือ Admin ที่เปิดใช้งานอย่างน้อย 1 คน" }, { status: 400 });
     }
   }
 
-  const result = updateUser(params.id, {
+  const result = await updateUser(params.id, {
     ...(body?.name !== undefined ? { name: String(body.name) } : {}),
     ...(newRole !== undefined ? { role: newRole as "user" | "purchaser" | "admin" } : {}),
     ...(newActive !== undefined ? { is_active: newActive } : {}),
@@ -48,14 +48,14 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   const { error, user } = requireAdmin();
   if (error || !user) return error;
-  const target = getUser(params.id);
+  const target = await getUser(params.id);
   if (!target) return NextResponse.json({ error: "ไม่พบผู้ใช้" }, { status: 404 });
   if (params.id === user.id) {
     return NextResponse.json({ error: "ไม่สามารถลบบัญชีตัวเอง" }, { status: 400 });
   }
-  if (target.role === "admin" && target.is_active && activeAdminCount(target.id) === 0) {
+  if (target.role === "admin" && target.is_active && (await activeAdminCount(target.id)) === 0) {
     return NextResponse.json({ error: "ต้องเหลือ Admin ที่เปิดใช้งานอย่างน้อย 1 คน" }, { status: 400 });
   }
-  deleteUser(params.id);
+  await deleteUser(params.id);
   return NextResponse.json({ ok: true });
 }

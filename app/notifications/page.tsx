@@ -5,7 +5,7 @@ import NotifySettings from "@/components/NotifySettings";
 import { listExtraEmails, listEmailLogs } from "@/lib/store";
 import { isEmailConfigured } from "@/lib/email";
 
-export default function NotificationsPage() {
+export default async function NotificationsPage() {
   const user = getSession();
   if (!user) redirect("/login");
   if (user.role !== "admin") redirect("/no-access");
@@ -13,7 +13,7 @@ export default function NotificationsPage() {
   return (
     <AppShell user={user}>
       <h1 className="text-xl font-bold">ตั้งค่าการแจ้งเตือน</h1>
-      <NotifySettings initial={listExtraEmails()} logs={listEmailLogs(20)} configured={isEmailConfigured()} />
+      <NotifySettings initial={await listExtraEmails()} logs={await listEmailLogs(20)} configured={isEmailConfigured()} />
     </AppShell>
   );
 }

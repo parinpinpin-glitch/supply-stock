@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, decodeSession } from "@/lib/auth";
-import { readSupplies, writeSupplies, findOrder, updateOrder, addMovement, todayISO } from "@/lib/store";
+import { findSupply, updateSupply, findOrder, updateOrder, addMovement, todayISO } from "@/lib/store";
 import { saveInvoice } from "@/lib/invoices";
 import { notify } from "@/lib/email";
 
@@ -15,7 +15,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     return NextResponse.json({ error: "เฉพาะผู้ซื้อ/Admin" }, { status: 403 });
   }
 
-  const order = findOrder(params.id);
+  const order = await findOrder(params.id);
   if (!order) return NextResponse.json({ error: "ไม่พบรายการสั่งซื้อ" }, { status: 404 });
   if (order.received_status === "received")
     return NextResponse.json({ error: "รายการนี้รับของเข้าแล้ว" }, { status: 400 });
@@ -31,20 +31,16 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const saved = await saveInvoice(invoice, order.id);
   if (!saved.ok) return NextResponse.json({ error: saved.error }, { status: 400 });
 
-  const all = readSupplies();
-  const idx = all.findIndex((s) => s.id === order.supply_id);
-  if (idx === -1) return NextResponse.json({ error: "ไม่พบรายการ Supply ของ order นี้" }, { status: 404 });
+  const supply = await findSupply(order.supply_id);
+  if (!supply) return NextResponse.json({ error: "ไม่พบรายการ Supply ของ order นี้" }, { status: 404 });
 
   // เพิ่ม stock + อัปเดต last_purchase_date
-  all[idx] = {
-    ...all[idx],
-    current_stock: all[idx].current_stock + received_qty,
-    last_purchase_date: todayISO(),
-    updated_at: new Date().toISOString()
-  };
-  writeSupplies(all);
+  const stocked = await updateSupply(supply.id, {
+    current_stock: supply.current_stock + received_qty,
+    last_purchase_date: todayISO()
+  });
 
-  const updated = updateOrder(order.id, {
+  const updated = await updateOrder(order.id, {
     received_status: "received",
     received_at: new Date().toISOString(),
     received_qty,
@@ -52,7 +48,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     notes: notes || order.notes
   });
 
-  addMovement({
+  await addMovement({
     supply_id: order.supply_id,
     movement_type: "receive",
     qty: received_qty,
@@ -65,10 +61,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   await notify(
     "received",
-    `[SupplyStock] รับของเข้าแล้ว: ${all[idx].item_name}`,
-    `<p>รับ <b>${all[idx].item_name}</b> จำนวน <b>${received_qty} ${all[idx].unit}</b> แล้ว (stock ใหม่ ${all[idx].current_stock})</p><p>รับโดย ${user.name}</p>`,
+    `[SupplyStock] รับของเข้าแล้ว: ${stocked!.item_name}`,
+    `<p>รับ <b>${stocked!.item_name}</b> จำนวน <b>${received_qty} ${stocked!.unit}</b> แล้ว (stock ใหม่ ${stocked!.current_stock})</p><p>รับโดย ${user.name}</p>`,
     { supply_id: order.supply_id, order_id: order.id }
   );
 
-  return NextResponse.json({ order: updated, supply: all[idx] });
+  return NextResponse.json({ order: updated, supply: stocked });
 }

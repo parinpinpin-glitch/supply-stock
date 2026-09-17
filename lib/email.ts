@@ -10,8 +10,8 @@ function resendClient() {
   return new Resend(key);
 }
 
-export function getRecipients(): string[] {
-  return listExtraEmails().filter((e) => e.is_active).map((e) => e.email);
+export async function getRecipients(): Promise<string[]> {
+  return (await listExtraEmails()).filter((e) => e.is_active).map((e) => e.email);
 }
 
 export function isEmailConfigured(): boolean {
@@ -24,9 +24,9 @@ export async function notify(
   html: string,
   related: { supply_id?: string | null; order_id?: string | null }
 ) {
-  const recipients = getRecipients();
+  const recipients = await getRecipients();
   if (recipients.length === 0) {
-    return logEmail({
+    return await logEmail({
       event_type: event,
       related_supply_id: related.supply_id ?? null,
       related_purchase_order_id: related.order_id ?? null,
